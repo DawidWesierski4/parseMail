@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 
 #define MAX_NAME 64
 #define MAX_DOMAIN 32
@@ -143,11 +142,9 @@ ParseMail(const char *mail, void *out)
 
    strcpy(outPtr->surName, "\0");
    strncat(outPtr->surName, mail, atCharPtr - mail);
-
    check = checkName(outPtr->surName);
 
    if (outPtr->name == outPtr->surName) {
-      /* to make sure that we do not free the same pointer 2 times */
       outPtr->surName = NULL;
    }
 
@@ -217,7 +214,7 @@ int main(void)
       return ERR_ALLOCATING_MEMORY;
    }
 
-   aux = ParseMail("jan.kowalski@intel.com", (void*)&janK);
+   aux = ParseMail("jan.kowalski@intel.com", &janK);
    if (!aux) {
       printCredentials(janK);
    } else {
@@ -225,7 +222,7 @@ int main(void)
    }
 
    aux = ParseMail("adequatly_longer_test_name.adequatly_longer_test_name"
-                   "@adequatly_longer_test_name", (void*)&janK);
+                   "@adequatly_longer_test_name", &janK);
    if (!aux) {
       printCredentials(janK);
    } else {
@@ -233,35 +230,35 @@ int main(void)
    }
 
 
-   aux = ParseMail("jankowalski@intel.com", (void*)&janK);
+   aux = ParseMail("jankowalski@intel.com", &janK);
    if (!aux) {
       printCredentials(janK);
    } else {
       printf("RESULT: %d\n\n", aux);
    }
 
-   aux = ParseMail("jan.kowalski@intel.com", (void*)&janK);
+   aux = ParseMail("jan.kowalski@intel.com", &janK);
    if (!aux) {
       printCredentials(janK);
    } else {
       printf("RESULT: %d\n\n", aux);
    }
 
-   aux = ParseMail("jankowalski@@.@.@...com", (void*)&janK);
+   aux = ParseMail("jankowalski@@.@.@...com", &janK);
    if (!aux) {
       printCredentials(janK);
    } else {
       printf("RESULT: %d\n\n", aux);
    }
 
-   aux = ParseMail("janko........@@.@.@...com", (void*)&janK);
+   aux = ParseMail("janko........@@.@.@...com", &janK);
    if (!aux) {
       printCredentials(janK);
    } else {
       printf("RESULT: %d\n\n", aux);
    }
 
-   aux = ParseMail("@", (void*)&janK);
+   aux = ParseMail("@", &janK);
    if (!aux) {
       printCredentials(janK);
    } else {
@@ -269,14 +266,14 @@ int main(void)
    }
 
 
-   aux = ParseMail(".@", (void*)&janK);
+   aux = ParseMail(".@", &janK);
    if (!aux) {
       printCredentials(janK);
    } else {
       printf("RESULT: %d\n\n", aux);
    }
 
-   aux = ParseMail("@", (void*)&janK);
+   aux = ParseMail("@", &janK);
    if (!aux) {
       printCredentials(janK);
    } else {
@@ -287,7 +284,7 @@ int main(void)
    aux = ParseMail("adequatly_longer_test_name"
                    ".adequatly_longer__test_surname"
                    "@notadequatly_longer_domain.coma_____________________",
-                   (void*)&janK);
+                   &janK);
    if (!aux) {
       printCredentials(janK);
    } else {
@@ -297,7 +294,7 @@ int main(void)
    aux = ParseMail("notadequatly_longer_alias__________________________________"
                    "__________________________________________________________"
                    "@adequatly_longer_domain.com",
-                   (void*)&janK);
+                   &janK);
    if (!aux) {
       printCredentials(janK);
    } else {
@@ -308,21 +305,21 @@ int main(void)
                    "notadequatly_longer_surname________________________________"
                    "___________________________________________________________"
                    "@adequatly_longer_domain.com",
-                   (void*)&janK);
+                   &janK);
    if (!aux) {
       printCredentials(janK);
    } else {
       printf("RESULT: %d\n\n", aux);
    }
 
-   aux = ParseMail("jankowalski@intel.com", (void*)&janK);
+   aux = ParseMail("jankowalski@intel.com", &janK);
    if (!aux) {
       printCredentials(janK);
    } else {
       printf("RESULT: %d\n\n", aux);
    }
 
-   aux = ParseMail("jankowa.lski@intel.com", (void*)&janK);
+   aux = ParseMail("jankowa.lski@intel.com", &janK);
    if (!aux) {
       printCredentials(janK);
    } else {
@@ -331,7 +328,7 @@ int main(void)
 
    releseCredentialsMemory(&janK);
 
-   aux = ParseMail("jan.kowalski@intel.com", (void*)&janK);
+   aux = ParseMail("jan.kowalski@intel.com", &janK);
    if (!aux) {
       printCredentials(janK);
    } else {
