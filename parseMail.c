@@ -17,7 +17,7 @@ enum ERR_NUMS {
 
 typedef struct credentialInformation {
 
-   char *name; /* pointer to [0] fisrt name, [1] surname */
+   char *name;
    char *surName;
    char *domain;
 } credentials;
@@ -45,19 +45,19 @@ checkName(const char *name)
    return 0;
 }
 
-/*rules for domain*/
+/* rules for domain */
 int
-checkDomain(const char *name)
+checkDomain(const char *domain)
 {
    int minSize = 3;
    int i = 1;
 
-   if (name[0] != '@') {
+   if (domain[0] != '@') {
       return ERR_INPUT_FORMAT_ILLEGAL_CHAR;
    }
 
-   while (name[i] != '\0') {
-      if (name[i] == '@' || name[i] == ' ') {
+   while (domain[i] != '\0') {
+      if (domain[i] == '@' || domain[i] == ' ') {
          return ERR_INPUT_FORMAT_ILLEGAL_CHAR;
       }
       i++;
@@ -76,10 +76,9 @@ ParseMail(const char *mail, void *out)
    char *atCharPtr = strchr(mail, '@');
    char *dotCharPtr;
    int atPosition, size, check;
-   //credentials *outPtr = ((credentials*)out);
+   credentials *outPtr = ((credentials*)out);
 
-   if (!out || ((credentials*)out)->name == NULL ||
-       ((credentials*)out)->domain == NULL ) {
+   if (!out || outPtr->name == NULL || outPtr->domain == NULL ) {
       fprintf(stderr, "ERR_ALLOCATING_MEMORY\n");
       return ERR_NULL_POINTER;
    } else if (!atCharPtr) {
@@ -96,22 +95,22 @@ ParseMail(const char *mail, void *out)
          return ERR_STR_BUFF_OVERFLOW;
       }
 
-      if ( ((credentials*)out)->surName == NULL ) {
-         ((credentials*)out)->surName = (char*)malloc(MAX_NAME);
+      if (outPtr->surName == NULL ) {
+         outPtr->surName = (char*)malloc(MAX_NAME);
       }
 
-      strcpy(((credentials*)out)->name, "\0");
-      strncat( ((credentials*)out)->name, mail, dotCharPtr - mail );
+      strcpy(outPtr->name, "\0");
+      strncat(outPtr->name, mail, dotCharPtr - mail);
 
-      check = checkName( ((credentials*)out)->name );
+      check = checkName(outPtr->name);
       if (check) {
          fprintf(stderr, "ERR_INPUT_FORMAT\n");
          return check;
       }
       mail = dotCharPtr + 1; /*move pointer past the dot char*/
    } else {
-      free( ((credentials*)out)->surName );
-      ((credentials*)out)->surName = ((credentials*)out)->name;
+      free(outPtr->surName );
+      outPtr->surName = outPtr->name;
    }
    /*
     *if there was an '.' character before '@':
@@ -131,23 +130,23 @@ ParseMail(const char *mail, void *out)
     *  alias@domain.com
     */
    if (atCharPtr - mail > MAX_NAME - 1) {
-      if ( ((credentials*)out)->name ==
-          ((credentials*)out)->surName ) {
+      if ( outPtr->name ==
+          outPtr->surName ) {
          /*to make sure that we do not free the same pointer 2 times */
-         ((credentials*)out)->surName = NULL;
+         outPtr->surName = NULL;
       }
       fprintf(stderr, "ERR_STR_BUFF_OVERFLOW\n");
       return ERR_STR_BUFF_OVERFLOW;
    }
 
-   strcpy(((credentials*)out)->surName, "\0");
-   strncat( ((credentials*)out)->surName, mail, atCharPtr - mail );
+   strcpy(outPtr->surName, "\0");
+   strncat( outPtr->surName, mail, atCharPtr - mail );
 
-   check = checkName( ((credentials*)out)->surName );
+   check = checkName( outPtr->surName );
 
-   if ( ((credentials*)out)->name == ((credentials*)out)->surName) {
+   if ( outPtr->name == outPtr->surName) {
       /*to make sure that we do not free the same pointer 2 times */
-      ((credentials*)out)->surName = NULL;
+      outPtr->surName = NULL;
    }
 
    if (check) {
@@ -162,9 +161,9 @@ ParseMail(const char *mail, void *out)
       return ERR_STR_BUFF_OVERFLOW;
    }
 
-   strcpy(((credentials*)out)->domain, mail);
+   strcpy(outPtr->domain, mail);
 
-   check = checkDomain( ((credentials*)out)->domain );
+   check = checkDomain( outPtr->domain );
    if (check) {
       fprintf(stderr, "ERR_INPUT_FORMAT\n");
       return check;
