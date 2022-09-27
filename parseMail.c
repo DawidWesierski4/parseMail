@@ -2,13 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_NAME 2048
-#define MAX_DOMAIN 1024
 
 enum ERR_NUMS {
    ERR_ALLOCATING_MEMORY = 1,
    ERR_NULL_POINTER,
-   ERR_STR_BUFF_OVERFLOW,
    ERR_INPUT_FORMAT,
    ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION,
    ERR_INPUT_FORMAT_ILLEGAL_CHAR
@@ -26,6 +23,7 @@ int
 checkName(const char *name)
 {
    int minSize = 3;
+   int maxSize = 32;
    int i = 0;
 
    while (name[i] != '\0') {
@@ -33,6 +31,8 @@ checkName(const char *name)
        * as everything past the at is considered domain */
       if (name[i] == '.' || name[i] == ' ') {
          return ERR_INPUT_FORMAT_ILLEGAL_CHAR;
+      } else if (i > maxSize) {
+         return ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION;
       }
 
       i++;
@@ -50,6 +50,7 @@ int
 checkDomain(const char *domain)
 {
    int minSize = 3;
+   int maxSize = 32;
    int i = 1;
 
    if (domain[0] != '@') {
@@ -59,7 +60,10 @@ checkDomain(const char *domain)
    while (domain[i] != '\0') {
       if (domain[i] == '@' || domain[i] == ' ') {
          return ERR_INPUT_FORMAT_ILLEGAL_CHAR;
+      } else if (i > maxSize) {
+         return ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION;
       }
+
       i++;
    }
 
@@ -76,33 +80,32 @@ ParseMail(const char *mail, void *out)
    const char *atCharPtr = strchr(mail, '@');
    const char *dotCharPtr;
    int atPosition, size, check;
-   credentials *outPtr = ((credentials*)out);
+   credentials *outPtr;
 
-   if (!out || outPtr->name == NULL || outPtr->domain == NULL) {
-      fprintf(stderr, "ERR_ALLOCATING_MEMORY\n");
+   if (!out) {
+      fprintf(stderr, "ERR_NULL_POINTER\n");
       return ERR_NULL_POINTER;
    } else if (!atCharPtr) {
       fprintf(stderr, "ERR_INPUT_FORMAT\n");
       return ERR_INPUT_FORMAT;
    }
 
+   outPtr = ((credentials*)out);
+
    atPosition = atCharPtr - mail;
    dotCharPtr = strchr(mail, '.');
 
    if (dotCharPtr && atPosition > dotCharPtr - mail) {
-      if (dotCharPtr - mail > MAX_NAME - 1) {
-         fprintf(stderr, "ERR_STR_BUFF_OVERFLOW\n");
-         return ERR_STR_BUFF_OVERFLOW;
-      }
-
-      if (outPtr->surName == NULL) {
-          outPtr->surName = (char*)malloc(MAX_NAME);
+      size = dotCharPtr - mail;
+      outPtr->name = (char*)malloc(size+1);
+      if (outPtr->name == NULL) {
+         fprintf(stderr, "ERR_ALLOCATING_MEMORY");
+         return ERR_ALLOCATING_MEMORY;
       }
 
       strcpy(outPtr->name, "\0");
-      strncat(outPtr->name, mail, dotCharPtr - mail);
+      strncat(outPtr->name, mail, size);
       check = checkName(outPtr->name);
-
       if (check) {
          fprintf(stderr, "ERR_INPUT_FORMAT\n");
          return check;
@@ -110,7 +113,6 @@ ParseMail(const char *mail, void *out)
 
       mail = dotCharPtr + 1; /* move pointer past the dot char */
    } else {
-      free(outPtr->surName);
       outPtr->surName = outPtr->name;
    }
    /*
@@ -130,14 +132,11 @@ ParseMail(const char *mail, void *out)
     * \/
     *  alias@domain.com
     */
-   if (atCharPtr - mail > MAX_NAME - 1) {
-      if (outPtr->name ==
-          outPtr->surName) {
-         /* to make sure that we do not free the same pointer 2 times */
-         outPtr->surName = NULL;
-      }
-      fprintf(stderr, "ERR_STR_BUFF_OVERFLOW\n");
-      return ERR_STR_BUFF_OVERFLOW;
+   size = atCharPtr - mail;
+   outPtr->surName = (char*)malloc(size+1);
+   if (outPtr->surName == NULL) {
+      fprintf(stderr, "ERR_ALLOCATING_MEMORY");
+      return ERR_ALLOCATING_MEMORY;
    }
 
    strcpy(outPtr->surName, "\0");
@@ -155,13 +154,13 @@ ParseMail(const char *mail, void *out)
 
    mail = atCharPtr;
    size = strlen(mail);
-   if (size > MAX_DOMAIN) {
-      fprintf(stderr, "ERR_STR_BUFF_OVERFLOW\n");
-      return ERR_STR_BUFF_OVERFLOW;
+   outPtr->domain = (char*)malloc(size);
+   if (outPtr->domain == NULL) {
+      fprintf(stderr, "ERR_ALLOCATING_MEMORY");
+      return ERR_ALLOCATING_MEMORY;
    }
 
    strcpy(outPtr->domain, mail);
-
    check = checkDomain(outPtr->domain);
    if (check) {
       fprintf(stderr, "ERR_INPUT_FORMAT\n");
@@ -235,9 +234,6 @@ automaticStatusTestParseMail(void) {
    credentials output;
 
    for (i = 0; i < size; i++) {
-      output.name = malloc(sizeof(input[i].inputName));
-      output.surName = malloc(sizeof(input[i].inputName));
-      output.domain = malloc(sizeof(input[i].inputName));
       if (ParseMail(input[i].inputName, &output) != input[i].expectedResult) {
          printf("Unexpected result on entry %d\n", i);
          printf("On %s Expected %d got %d\n", input[i].inputName,
@@ -262,16 +258,7 @@ int main(void)
    credentials janK;
    int aux;
 
-   janK.name = (char*)malloc(MAX_NAME);
-   janK.surName = (char*)malloc(MAX_NAME);
-   janK.domain = (char*)malloc(MAX_DOMAIN);
-
    automaticStatusTestParseMail();
-
-   if (!janK.name || !janK.domain || !janK.surName) {
-      fprintf(stderr, "ERR_ALLOCATING_MEMORY\n");
-      return ERR_ALLOCATING_MEMORY;
-   }
 
    aux = ParseMail("jan.kowalski@intel.com", &janK);
    if (!aux) {
@@ -279,6 +266,7 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
+   releseCredentialsMemory(&janK);
 
    aux = ParseMail("adequatly_longer_test_name.adequatly_longer_test_name"
                    "@adequatly_longer_test_name", &janK);
@@ -287,7 +275,7 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
-
+   releseCredentialsMemory(&janK);
 
    aux = ParseMail("jankowalski@intel.com", &janK);
    if (!aux) {
@@ -295,6 +283,7 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
+   releseCredentialsMemory(&janK);
 
    aux = ParseMail("jan.kowalski@intel.com", &janK);
    if (!aux) {
@@ -302,6 +291,7 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
+   releseCredentialsMemory(&janK);
 
    aux = ParseMail("jankowalski@@.@.@...com", &janK);
    if (!aux) {
@@ -309,6 +299,7 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
+   releseCredentialsMemory(&janK);
 
    aux = ParseMail("janko........@@.@.@...com", &janK);
    if (!aux) {
@@ -316,6 +307,7 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
+   releseCredentialsMemory(&janK);
 
    aux = ParseMail("@", &janK);
    if (!aux) {
@@ -323,6 +315,7 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
+   releseCredentialsMemory(&janK);
 
 
    aux = ParseMail(".@", &janK);
@@ -331,6 +324,7 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
+   releseCredentialsMemory(&janK);
 
    aux = ParseMail("@", &janK);
    if (!aux) {
@@ -338,6 +332,7 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
+   releseCredentialsMemory(&janK);
 
 
    aux = ParseMail("adequatly_longer_test_name"
@@ -349,6 +344,7 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
+   releseCredentialsMemory(&janK);
 
    aux = ParseMail("notadequatly_longer_alias__________________________________"
                    "__________________________________________________________"
@@ -359,6 +355,7 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
+   releseCredentialsMemory(&janK);
 
    aux = ParseMail("adequatly_longer_name."
                    "notadequatly_longer_surname________________________________"
@@ -370,6 +367,7 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
+   releseCredentialsMemory(&janK);
 
    aux = ParseMail("jankowalski@intel.com", &janK);
    if (!aux) {
@@ -377,6 +375,7 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
+   releseCredentialsMemory(&janK);
 
    aux = ParseMail("jankowa.lski@intel.com", &janK);
    if (!aux) {
@@ -384,7 +383,6 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
-
    releseCredentialsMemory(&janK);
 
    aux = ParseMail("jan.kowalski@intel.com", &janK);
@@ -393,6 +391,7 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
+   releseCredentialsMemory(&janK);
 
    return 0;
 }
