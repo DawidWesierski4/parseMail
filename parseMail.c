@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_NAME 64
-#define MAX_DOMAIN 32
+#define MAX_NAME 2048
+#define MAX_DOMAIN 1024
 
 enum ERR_NUMS {
    ERR_ALLOCATING_MEMORY = 1,
@@ -199,6 +199,63 @@ releseCredentialsMemory(credentials *person) {
    person->domain = NULL;
 }
 
+struct automaticStatusTestStruct {
+   const char* inputName;
+   int expectedResult;
+};
+
+void
+automaticStatusTestParseMail(void) {
+   int i;
+   struct automaticStatusTestStruct input[] = {
+      {"you.froodian@sbcglobal.net",   0},
+      {"gemmell@sbcglobal.net",        0},
+      {"step.esasaki@att.net",         0},
+      {"evilopie@outlook.com",         0},
+      {"hans.sthomas@msn.com",         0},
+      {"jelmer@optonline.net",         0},
+      {"mrobshaw@yahoo.ca",            0},
+      {"you.froodiansbcglobal.net",    ERR_INPUT_FORMAT},
+      {"gemmellsbcglobal.net",         ERR_INPUT_FORMAT},
+      {"step.esasakiatt.net",          ERR_INPUT_FORMAT},
+      {"evilopieoutlook.com",          ERR_INPUT_FORMAT},
+      {"hans.sthomasmsn.com",          ERR_INPUT_FORMAT},
+      {"jelmeroptonline.net",          ERR_INPUT_FORMAT},
+      {"mrobshawyahoo.ca",             ERR_INPUT_FORMAT},
+      {"y.oufroodian@sbcglobal.net",   ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION},
+      {"ge@sbcglobal.net",             ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION},
+      {"step.e@att.net",               ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION},
+      {"e@outlook.com",                ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION},
+      {"hans.sthomas@m",               ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION},
+      {"jelmer@o",                     ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION},
+      {"m@yahoo.ca",                   ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION},
+   };
+   int size = sizeof(input) / sizeof(input[0]);
+   short succes = 1;
+   credentials output;
+
+   for (i = 0; i < size; i++) {
+      output.name = malloc(sizeof(input[i].inputName));
+      output.surName = malloc(sizeof(input[i].inputName));
+      output.domain = malloc(sizeof(input[i].inputName));
+      if (ParseMail(input[i].inputName, &output) != input[i].expectedResult) {
+         printf("Unexpected result on entry %d\n", i);
+         printf("On %s Expected %d got %d\n", input[i].inputName,
+                input[i].expectedResult,
+                ParseMail(input[i].inputName, &output));
+         succes = 0;
+      }
+      releseCredentialsMemory(&output);
+   }
+
+   printf("\nTest of ParseMail result:");
+   if (succes) {
+      printf("SUCCES\n");
+   } else {
+      printf("FAIL\n");
+   }
+}
+
 
 int main(void)
 {
@@ -208,6 +265,8 @@ int main(void)
    janK.name = (char*)malloc(MAX_NAME);
    janK.surName = (char*)malloc(MAX_NAME);
    janK.domain = (char*)malloc(MAX_DOMAIN);
+
+   automaticStatusTestParseMail();
 
    if (!janK.name || !janK.domain || !janK.surName) {
       fprintf(stderr, "ERR_ALLOCATING_MEMORY\n");
