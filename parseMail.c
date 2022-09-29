@@ -129,6 +129,11 @@ parseDomain(const char* mail, credentials *outPtr)
 int
 ParseMail(const char *mail, void *out)
 {
+   if (!out) {
+      fprintf(stderr, "ERR_NULL_POINTER\n");
+      return ERR_NULL_POINTER;
+   }
+
    const char *atCharPtr = strchr(mail, '@');
    const char *dotCharPtr;
    int atPosition, check;
