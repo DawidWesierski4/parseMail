@@ -12,7 +12,6 @@ enum ERR_NUMS {
 };
 
 typedef struct credentialInformation {
-
    char *name;
    char *surName;
    char *domain;
@@ -185,7 +184,7 @@ printCredentials(credentials person)
 }
 
 void
-releseCredentialsMemory(credentials *person) {
+releaseCredentialsMemory(credentials *person) {
    if(!person) {
       return;
    }
@@ -198,13 +197,12 @@ releseCredentialsMemory(credentials *person) {
    person->domain = NULL;
 }
 
-struct automaticStatusTestStruct {
-   const char* inputName;
-   int expectedResult;
-};
-
 void
 automaticStatusTestParseMail(void) {
+   struct automaticStatusTestStruct {
+   const char* inputName;
+   int expectedResult;
+   };
    int i;
    struct automaticStatusTestStruct input[] = {
       {"you.froodian@sbcglobal.net",   0},
@@ -230,7 +228,7 @@ automaticStatusTestParseMail(void) {
       {"m@yahoo.ca",                   ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION},
    };
    int size = sizeof(input) / sizeof(input[0]);
-   short succes = 1;
+   short success = 1;
    credentials output;
 
    for (i = 0; i < size; i++) {
@@ -239,14 +237,14 @@ automaticStatusTestParseMail(void) {
          printf("On %s Expected %d got %d\n", input[i].inputName,
                 input[i].expectedResult,
                 ParseMail(input[i].inputName, &output));
-         succes = 0;
+         success = 0;
       }
-      releseCredentialsMemory(&output);
+      releaseCredentialsMemory(&output);
    }
 
    printf("\nTest of ParseMail result:");
-   if (succes) {
-      printf("SUCCES\n");
+   if (success) {
+      printf("SUCCESS\n");
    } else {
       printf("FAIL\n");
    }
@@ -266,16 +264,16 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
-   releseCredentialsMemory(&janK);
+   releaseCredentialsMemory(&janK);
 
-   aux = ParseMail("adequatly_longer_test_name.adequatly_longer_test_name"
-                   "@adequatly_longer_test_name", &janK);
+   aux = ParseMail("adequately_longer_test_name.adequately_longer_test_name"
+                   "@adequately_longer_test_name", &janK);
    if (!aux) {
       printCredentials(janK);
    } else {
       printf("RESULT: %d\n\n", aux);
    }
-   releseCredentialsMemory(&janK);
+   releaseCredentialsMemory(&janK);
 
    aux = ParseMail("jankowalski@intel.com", &janK);
    if (!aux) {
@@ -283,7 +281,7 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
-   releseCredentialsMemory(&janK);
+   releaseCredentialsMemory(&janK);
 
    aux = ParseMail("jan.kowalski@intel.com", &janK);
    if (!aux) {
@@ -291,7 +289,7 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
-   releseCredentialsMemory(&janK);
+   releaseCredentialsMemory(&janK);
 
    aux = ParseMail("jankowalski@@.@.@...com", &janK);
    if (!aux) {
@@ -299,7 +297,7 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
-   releseCredentialsMemory(&janK);
+   releaseCredentialsMemory(&janK);
 
    aux = ParseMail("janko........@@.@.@...com", &janK);
    if (!aux) {
@@ -307,7 +305,7 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
-   releseCredentialsMemory(&janK);
+   releaseCredentialsMemory(&janK);
 
    aux = ParseMail("@", &janK);
    if (!aux) {
@@ -315,7 +313,7 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
-   releseCredentialsMemory(&janK);
+   releaseCredentialsMemory(&janK);
 
 
    aux = ParseMail(".@", &janK);
@@ -324,7 +322,7 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
-   releseCredentialsMemory(&janK);
+   releaseCredentialsMemory(&janK);
 
    aux = ParseMail("@", &janK);
    if (!aux) {
@@ -332,42 +330,42 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
-   releseCredentialsMemory(&janK);
+   releaseCredentialsMemory(&janK);
 
 
-   aux = ParseMail("adequatly_longer_test_name"
-                   ".adequatly_longer__test_surname"
-                   "@notadequatly_longer_domain.coma_____________________",
+   aux = ParseMail("adequately_longer_test_name"
+                   ".adequately_longer__test_surname"
+                   "@notadequately_longer_domain.coma_____________________",
                    &janK);
    if (!aux) {
       printCredentials(janK);
    } else {
       printf("RESULT: %d\n\n", aux);
    }
-   releseCredentialsMemory(&janK);
+   releaseCredentialsMemory(&janK);
 
-   aux = ParseMail("notadequatly_longer_alias__________________________________"
+   aux = ParseMail("notadequately_longer_alias__________________________________"
                    "__________________________________________________________"
-                   "@adequatly_longer_domain.com",
+                   "@adequately_longer_domain.com",
                    &janK);
    if (!aux) {
       printCredentials(janK);
    } else {
       printf("RESULT: %d\n\n", aux);
    }
-   releseCredentialsMemory(&janK);
+   releaseCredentialsMemory(&janK);
 
-   aux = ParseMail("adequatly_longer_name."
-                   "notadequatly_longer_surname________________________________"
+   aux = ParseMail("adequately_longer_name."
+                   "notadequately_longer_surname________________________________"
                    "___________________________________________________________"
-                   "@adequatly_longer_domain.com",
+                   "@adequately_longer_domain.com",
                    &janK);
    if (!aux) {
       printCredentials(janK);
    } else {
       printf("RESULT: %d\n\n", aux);
    }
-   releseCredentialsMemory(&janK);
+   releaseCredentialsMemory(&janK);
 
    aux = ParseMail("jankowalski@intel.com", &janK);
    if (!aux) {
@@ -375,7 +373,7 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
-   releseCredentialsMemory(&janK);
+   releaseCredentialsMemory(&janK);
 
    aux = ParseMail("jankowa.lski@intel.com", &janK);
    if (!aux) {
@@ -383,7 +381,7 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
-   releseCredentialsMemory(&janK);
+   releaseCredentialsMemory(&janK);
 
    aux = ParseMail("jan.kowalski@intel.com", &janK);
    if (!aux) {
@@ -391,7 +389,7 @@ int main(void)
    } else {
       printf("RESULT: %d\n\n", aux);
    }
-   releseCredentialsMemory(&janK);
+   releaseCredentialsMemory(&janK);
 
    return 0;
 }
