@@ -76,7 +76,6 @@ ParseMail(const char *mail, void *out)
    }
 
    outPtr = ((credentials*)out);
-
    atPosition = atCharPtr - mail;
    dotCharPtr = strchr(mail, '.');
 
