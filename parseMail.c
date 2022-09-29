@@ -62,6 +62,11 @@ checkDomain(const char *domain)
 int
 ParseMail(const char *mail, void *out)
 {
+   if (!mail) {
+      fprintf(stderr, "ERR_NULL_POINTER\n");
+      return ERR_NULL_POINTER;
+   }
+
    const char *atCharPtr = strchr(mail, '@');
    const char *dotCharPtr;
    int atPosition, size, check;
@@ -164,6 +169,7 @@ printCredentials(credentials person)
       printf("First Name: %s\n", person.name);
       printf("Surname: %s\n", person.surName);
    }
+
    printf("Domain: %s\n", person.domain);
    printf("\n");
 }

@@ -33,6 +33,14 @@ automaticStatusTestParseMail(void)
       {"hans.sthomas@m",               ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION},
       {"jelmer@o",                     ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION},
       {"m@yahoo.ca",                   ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION},
+      {"you..roodian@sbcglobal.net",   ERR_INPUT_FORMAT_ILLEGAL_CHAR},
+      {"gemmell@sbcglob@l.net",        ERR_INPUT_FORMAT_ILLEGAL_CHAR},
+      {"step.esasaki@att net",         ERR_INPUT_FORMAT_ILLEGAL_CHAR},
+      {"ev lopie@outlook.com",         ERR_INPUT_FORMAT_ILLEGAL_CHAR},
+      {"hans.sth mas@msn.com",         ERR_INPUT_FORMAT_ILLEGAL_CHAR},
+      {"jelmer@optonlin .net",         ERR_INPUT_FORMAT_ILLEGAL_CHAR},
+      {"mro shaw@yahoo.ca",            ERR_INPUT_FORMAT_ILLEGAL_CHAR},
+      {NULL,                           ERR_NULL_POINTER}
    };
    int size = sizeof(input) / sizeof(input[0]);
    short success = 1;
