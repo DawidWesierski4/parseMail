@@ -60,11 +60,78 @@ checkDomain(const char *domain)
 }
 
 int
+parseName(const char **mail, const char *dotCharPtr, credentials *outPtr)
+{
+   int check, size = dotCharPtr - *mail;
+   outPtr->name = (char*)malloc(size+1);
+   if (outPtr->name == NULL) {
+      fprintf(stderr, "ERR_ALLOCATING_MEMORY");
+      return ERR_ALLOCATING_MEMORY;
+   }
+
+   strcpy(outPtr->name, "\0");
+   strncat(outPtr->name, *mail, size);
+   check = checkName(outPtr->name);
+   if (check) {
+      fprintf(stderr, "ERR_INPUT_FORMAT\n");
+      return check;
+   }
+
+   *mail = dotCharPtr + 1; /* move pointer past the dot char */
+   return 0;
+}
+
+int
+parseSurname(const char **mail, const char *atCharPtr, credentials *outPtr)
+{
+   int check, size = atCharPtr - *mail;
+   outPtr->surName = (char*)malloc(size+1);
+   if (outPtr->surName == NULL) {
+      fprintf(stderr, "ERR_ALLOCATING_MEMORY");
+      return ERR_ALLOCATING_MEMORY;
+   }
+
+   strcpy(outPtr->surName, "\0");
+   strncat(outPtr->surName, *mail, atCharPtr - *mail);
+   check = checkName(outPtr->surName);
+   if (outPtr->name == outPtr->surName) {
+      outPtr->surName = NULL;
+   }
+
+   if (check) {
+      fprintf(stderr, "ERR_INPUT_FORMAT\n");
+      return check;
+   }
+   *mail = atCharPtr; /* move pointer to the at character */
+   return 0;
+}
+
+int
+parseDomain(const char* mail, credentials *outPtr)
+{
+   int check, size = strlen(mail);
+   outPtr->domain = (char*)malloc(size);
+   if (outPtr->domain == NULL) {
+      fprintf(stderr, "ERR_ALLOCATING_MEMORY");
+      return ERR_ALLOCATING_MEMORY;
+   }
+
+   strcpy(outPtr->domain, mail);
+   check = checkDomain(outPtr->domain);
+   if (check) {
+      fprintf(stderr, "ERR_INPUT_FORMAT\n");
+      return check;
+   }
+
+   return 0;
+}
+
+int
 ParseMail(const char *mail, void *out)
 {
    const char *atCharPtr = strchr(mail, '@');
    const char *dotCharPtr;
-   int atPosition, size, check;
+   int atPosition, check;
    credentials *outPtr;
 
    if (!out) {
@@ -78,24 +145,12 @@ ParseMail(const char *mail, void *out)
    outPtr = ((credentials*)out);
    atPosition = atCharPtr - mail;
    dotCharPtr = strchr(mail, '.');
-
    if (dotCharPtr && atPosition > dotCharPtr - mail) {
-      size = dotCharPtr - mail;
-      outPtr->name = (char*)malloc(size+1);
-      if (outPtr->name == NULL) {
-         fprintf(stderr, "ERR_ALLOCATING_MEMORY");
-         return ERR_ALLOCATING_MEMORY;
-      }
-
-      strcpy(outPtr->name, "\0");
-      strncat(outPtr->name, mail, size);
-      check = checkName(outPtr->name);
+      check = parseName(&mail, dotCharPtr, outPtr);
       if (check) {
-         fprintf(stderr, "ERR_INPUT_FORMAT\n");
          return check;
       }
 
-      mail = dotCharPtr + 1; /* move pointer past the dot char */
    } else {
       outPtr->surName = outPtr->name;
    }
@@ -116,41 +171,14 @@ ParseMail(const char *mail, void *out)
     * \/
     *  alias@domain.com
     */
-   size = atCharPtr - mail;
-   outPtr->surName = (char*)malloc(size+1);
-   if (outPtr->surName == NULL) {
-      fprintf(stderr, "ERR_ALLOCATING_MEMORY");
-      return ERR_ALLOCATING_MEMORY;
-   }
-
-   strcpy(outPtr->surName, "\0");
-   strncat(outPtr->surName, mail, atCharPtr - mail);
-   check = checkName(outPtr->surName);
-
-   if (outPtr->name == outPtr->surName) {
-      outPtr->surName = NULL;
-   }
-
+   check = parseSurname(&mail, atCharPtr, outPtr);
    if (check) {
-      fprintf(stderr, "ERR_INPUT_FORMAT\n");
       return check;
    }
-
-   mail = atCharPtr;
-   size = strlen(mail);
-   outPtr->domain = (char*)malloc(size);
-   if (outPtr->domain == NULL) {
-      fprintf(stderr, "ERR_ALLOCATING_MEMORY");
-      return ERR_ALLOCATING_MEMORY;
-   }
-
-   strcpy(outPtr->domain, mail);
-   check = checkDomain(outPtr->domain);
+   check = parseDomain(mail, outPtr);
    if (check) {
-      fprintf(stderr, "ERR_INPUT_FORMAT\n");
       return check;
    }
-
    return 0;
 }
 
@@ -164,6 +192,7 @@ printCredentials(credentials person)
       printf("First Name: %s\n", person.name);
       printf("Surname: %s\n", person.surName);
    }
+
    printf("Domain: %s\n", person.domain);
    printf("\n");
 }

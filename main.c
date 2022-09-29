@@ -4,7 +4,8 @@
 #include "parseMail.h"
 
 void
-automaticStatusTestParseMail(void) {
+automaticStatusTestParseMail(void)
+{
    struct automaticStatusTestStruct {
    const char* inputName;
    int expectedResult;
@@ -149,7 +150,7 @@ int main(void)
    }
    releaseCredentialsMemory(&janK);
 
-   aux = ParseMail("notadequately_longer_alias__________________________________"
+   aux = ParseMail("notadequately_longer_alias_________________________________"
                    "__________________________________________________________"
                    "@adequately_longer_domain.com",
                    &janK);
@@ -161,7 +162,7 @@ int main(void)
    releaseCredentialsMemory(&janK);
 
    aux = ParseMail("adequately_longer_name."
-                   "notadequately_longer_surname________________________________"
+                   "notadequately_longer_surname_______________________________"
                    "___________________________________________________________"
                    "@adequately_longer_domain.com",
                    &janK);
