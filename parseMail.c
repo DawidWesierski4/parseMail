@@ -8,22 +8,22 @@ printErrorMsg(int errorEnum)
 {
    switch (errorEnum) {
       case ERR_ALLOCATING_MEMORY:
-         fprintf(stderr, "ERR_ALLOCATING_MEMORY");
+         fprintf(stderr, "ERR_ALLOCATING_MEMORY\n");
          return;
       case ERR_NULL_POINTER:
-         fprintf(stderr, "ERR_NULL_POINTER");
+         fprintf(stderr, "ERR_NULL_POINTER\n");
          return;
       case ERR_INPUT_FORMAT:
-         fprintf(stderr, "ERR_INPUT_FORMAT");
+         fprintf(stderr, "ERR_INPUT_FORMAT\n");
          return;
       case ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION:
-         fprintf(stderr, "ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION");
+         fprintf(stderr, "ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION\n");
          return;
       case ERR_INPUT_FORMAT_ILLEGAL_CHAR:
-         fprintf(stderr, "ERR_INPUT_FORMAT_ILLEGAL_CHAR");
+         fprintf(stderr, "ERR_INPUT_FORMAT_ILLEGAL_CHAR\n");
          return;
       default:
-         fprintf(stderr, "ERR_UNKNOWN_ERR");
+         fprintf(stderr, "ERR_UNKNOWN_ERROR\n");
          return;
    }
 }
@@ -33,7 +33,6 @@ int
 checkName(const char *name)
 {
    int minSize = 3;
-   int maxSize = 32;
    int i = 0;
 
    while (name[i] != '\0') {
@@ -41,17 +40,13 @@ checkName(const char *name)
        * as everything past the at is considered domain */
       if (name[i] == '.' || name[i] == ' ') {
          return ERR_INPUT_FORMAT_ILLEGAL_CHAR;
-      } else if (i > maxSize) {
-         return ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION;
       }
 
       i++;
    }
-
    if (i < minSize) {
       return ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION;
    }
-
    return 0;
 }
 
@@ -62,10 +57,6 @@ checkDomain(const char *domain)
    int minSize = 3;
    int maxSize = 32;
    int i = 1;
-
-   if (domain[0] != '@') {
-      return ERR_INPUT_FORMAT_ILLEGAL_CHAR;
-   }
 
    while (domain[i] != '\0') {
       if (domain[i] == '@' || domain[i] == ' ') {
@@ -83,6 +74,7 @@ checkDomain(const char *domain)
 
    return 0;
 }
+
 
 int
 parseName(const char **mail, const char *charPtr, char **outPtr)

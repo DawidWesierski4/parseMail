@@ -4,8 +4,8 @@ The parseMail library purpose is to brake down email address into a credentials\
 which contains Name, Surname and Domain parts separated into the 3 strings \
 stored in the HEAP. Program allows the user to not specify the surname should\
 that be the case (alias@domain.com f.e.) the surname pointer will have NULL\
-value after successful parseMail function execution. The main purpose is \
-to test the parseMail funcion (it contains both automatic and unit tests)
+value after successful parseMail function execution. The "main.c" purpose is \
+to test the parseMail function (it contains both automatic and unit tests)
 
 ## Input
 (const char *mail) (void *out) \
