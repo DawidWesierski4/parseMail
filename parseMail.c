@@ -3,6 +3,31 @@
 #include <string.h>
 #include "parseMail.h"
 
+void
+printErrorMsg(int errorEnum)
+{
+   switch (errorEnum) {
+      case ERR_ALLOCATING_MEMORY:
+         fprintf(stderr, "ERR_ALLOCATING_MEMORY");
+         return;
+      case ERR_NULL_POINTER:
+         fprintf(stderr, "ERR_NULL_POINTER");
+         return;
+      case ERR_INPUT_FORMAT:
+         fprintf(stderr, "ERR_INPUT_FORMAT");
+         return;
+      case ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION:
+         fprintf(stderr, "ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION");
+         return;
+      case ERR_INPUT_FORMAT_ILLEGAL_CHAR:
+         fprintf(stderr, "ERR_INPUT_FORMAT_ILLEGAL_CHAR");
+         return;
+      default:
+         fprintf(stderr, "ERR_UNKNOWN_ERR");
+         return;
+   }
+}
+
 /* rules for names */
 int
 checkName(const char *name)
@@ -60,49 +85,44 @@ checkDomain(const char *domain)
 }
 
 int
-parseName(const char **mail, const char *dotCharPtr, credentials *outPtr)
+parseName(const char **mail, const char *charPtr, char **outPtr)
 {
-   int check, size = dotCharPtr - *mail;
-   outPtr->name = (char*)malloc(size+1);
-   if (outPtr->name == NULL) {
-      fprintf(stderr, "ERR_ALLOCATING_MEMORY");
+   int check, size = charPtr - *mail;
+
+   if (charPtr == NULL) {
+      size = strlen(*mail); /* domain */
+   } else {
+      size = charPtr - *mail; /* name or surname */
+   }
+
+   *outPtr = (char*)malloc(size + 1);
+   if (*outPtr == NULL) {
+      printErrorMsg(ERR_ALLOCATING_MEMORY);
       return ERR_ALLOCATING_MEMORY;
    }
 
-   strcpy(outPtr->name, "\0");
-   strncat(outPtr->name, *mail, size);
-   check = checkName(outPtr->name);
-   if (check) {
-      fprintf(stderr, "ERR_INPUT_FORMAT\n");
-      return check;
-   }
+   strncpy(*outPtr, *mail, size);
+   (*outPtr)[size] = '\0';
 
-   *mail = dotCharPtr + 1; /* move pointer past the dot char */
-   return 0;
-}
-
-int
-parseSurname(const char **mail, const char *atCharPtr, credentials *outPtr)
-{
-   int check, size = atCharPtr - *mail;
-   outPtr->surName = (char*)malloc(size+1);
-   if (outPtr->surName == NULL) {
-      fprintf(stderr, "ERR_ALLOCATING_MEMORY");
-      return ERR_ALLOCATING_MEMORY;
-   }
-
-   strcpy(outPtr->surName, "\0");
-   strncat(outPtr->surName, *mail, atCharPtr - *mail);
-   check = checkName(outPtr->surName);
-   if (outPtr->name == outPtr->surName) {
-      outPtr->surName = NULL;
+   if(charPtr == NULL) {
+      check = checkDomain(*outPtr);
+   } else {
+      check = checkName(*outPtr);
    }
 
    if (check) {
-      fprintf(stderr, "ERR_INPUT_FORMAT\n");
+      printErrorMsg(check);
       return check;
    }
-   *mail = atCharPtr; /* move pointer to the at character */
+
+   if (!charPtr) {
+      return 0;
+   } else if (charPtr[0] == '.') {
+      *mail = charPtr + 1; /* move pointer past the dot char */
+   } else if (charPtr[0] == '@') {
+      *mail = charPtr; /* move pointer to the at character */
+   }
+
    return 0;
 }
 
@@ -112,14 +132,14 @@ parseDomain(const char* mail, credentials *outPtr)
    int check, size = strlen(mail);
    outPtr->domain = (char*)malloc(size);
    if (outPtr->domain == NULL) {
-      fprintf(stderr, "ERR_ALLOCATING_MEMORY");
+      printErrorMsg(ERR_ALLOCATING_MEMORY);
       return ERR_ALLOCATING_MEMORY;
    }
 
    strcpy(outPtr->domain, mail);
    check = checkDomain(outPtr->domain);
    if (check) {
-      fprintf(stderr, "ERR_INPUT_FORMAT\n");
+      printErrorMsg(check);
       return check;
    }
 
@@ -135,16 +155,16 @@ ParseMail(const char *mail, void *out)
    credentials *outPtr;
 
    if (!mail) {
-      fprintf(stderr, "ERR_NULL_POINTER\n");
+      printErrorMsg(ERR_NULL_POINTER);
       return ERR_NULL_POINTER;
    }
 
    atCharPtr = strchr(mail, '@');
    if (!out) {
-      fprintf(stderr, "ERR_NULL_POINTER\n");
+      printErrorMsg(ERR_NULL_POINTER);
       return ERR_NULL_POINTER;
    } else if (!atCharPtr) {
-      fprintf(stderr, "ERR_INPUT_FORMAT\n");
+      printErrorMsg(ERR_INPUT_FORMAT);
       return ERR_INPUT_FORMAT;
    }
 
@@ -152,39 +172,30 @@ ParseMail(const char *mail, void *out)
    atPosition = atCharPtr - mail;
    dotCharPtr = strchr(mail, '.');
    if (dotCharPtr && atPosition > dotCharPtr - mail) {
-      check = parseName(&mail, dotCharPtr, outPtr);
+      check = parseName(&mail, dotCharPtr, &outPtr->name);
+      if (check) {
+         return check;
+      }
+
+      check = parseName(&mail, atCharPtr, &outPtr->surName);
       if (check) {
          return check;
       }
 
    } else {
-      outPtr->surName = outPtr->name;
+      outPtr->surName = NULL;
+      check = parseName(&mail, atCharPtr, &outPtr->name);
+      if (check) {
+         return check;
+      }
+
    }
-   /*
-    * if there was an '.' character before '@':
-    * out content
-    *  ["name"] <- name
-    *  [MAX_NAME bytes of memory ] <- surName
-    *  [MAX_DOMAIN bytes of memory] <- domain
-    * mail points to
-    *      \/
-    *  name.surname@domain.com
-    * otherwise:
-    * out content
-    *  [MAX_NAME bytes of memory ] <- name, surName
-    *  [MAX_DOMAIN bytes of memory] <- domain
-    * mail points to
-    * \/
-    *  alias@domain.com
-    */
-   check = parseSurname(&mail, atCharPtr, outPtr);
+
+   check = parseName(&mail, NULL, &outPtr->domain);
    if (check) {
       return check;
    }
-   check = parseDomain(mail, outPtr);
-   if (check) {
-      return check;
-   }
+
    return 0;
 }
 

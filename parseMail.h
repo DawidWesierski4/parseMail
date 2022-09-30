@@ -15,6 +15,9 @@ enum ERR_NUMS {
    ERR_INPUT_FORMAT_ILLEGAL_CHAR
 };
 
+void
+printErrorMsg(int errorEnum);
+
 int
 checkName(const char *name);
 

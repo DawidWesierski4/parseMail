@@ -7,8 +7,8 @@ void
 automaticStatusTestParseMail(void)
 {
    struct automaticStatusTestStruct {
-   const char* inputName;
-   int expectedResult;
+      const char* inputName;
+      int expectedResult;
    };
    int i;
    struct automaticStatusTestStruct input[] = {
@@ -65,145 +65,47 @@ automaticStatusTestParseMail(void)
    }
 }
 
-int main(void)
+void
+unitTest(const char *one)
 {
    credentials janK;
    int aux;
-
-   automaticStatusTestParseMail();
-
-   aux = ParseMail("jan.kowalski@intel.com", &janK);
+   aux = ParseMail(one, &janK);
    if (!aux) {
       printCredentials(janK);
    } else {
+      printf("Test: %s Failed \n",one);
       printf("RESULT: %d\n\n", aux);
    }
    releaseCredentialsMemory(&janK);
+}
 
-   aux = ParseMail("adequately_longer_test_name.adequately_longer_test_name"
-                   "@adequately_longer_test_name", &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-   releaseCredentialsMemory(&janK);
+int main(void)
+{
+   //automaticStatusTestParseMail();
 
-   aux = ParseMail("jankowalski@intel.com", &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-   releaseCredentialsMemory(&janK);
-
-   aux = ParseMail("jan.kowalski@intel.com", &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-   releaseCredentialsMemory(&janK);
-
-   aux = ParseMail("jankowalski@@.@.@...com", &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-   releaseCredentialsMemory(&janK);
-
-   aux = ParseMail("janko........@@.@.@...com", &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-   releaseCredentialsMemory(&janK);
-
-   aux = ParseMail("@", &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-   releaseCredentialsMemory(&janK);
-
-
-   aux = ParseMail(".@", &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-   releaseCredentialsMemory(&janK);
-
-   aux = ParseMail("@", &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-   releaseCredentialsMemory(&janK);
-
-
-   aux = ParseMail("adequately_longer_test_name"
-                   ".adequately_longer__test_surname"
-                   "@notadequately_longer_domain.coma_____________________",
-                   &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-   releaseCredentialsMemory(&janK);
-
-   aux = ParseMail("notadequately_longer_alias_________________________________"
-                   "__________________________________________________________"
-                   "@adequately_longer_domain.com",
-                   &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-   releaseCredentialsMemory(&janK);
-
-   aux = ParseMail("adequately_longer_name."
-                   "notadequately_longer_surname_______________________________"
-                   "___________________________________________________________"
-                   "@adequately_longer_domain.com",
-                   &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-   releaseCredentialsMemory(&janK);
-
-   aux = ParseMail("jankowalski@intel.com", &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-   releaseCredentialsMemory(&janK);
-
-   aux = ParseMail("jankowa.lski@intel.com", &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-   releaseCredentialsMemory(&janK);
-
-   aux = ParseMail("jan.kowalski@intel.com", &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-   releaseCredentialsMemory(&janK);
+   unitTest("jan.kowalski@intel.com");
+   unitTest("adequately_longer_test_name.adequately_longer_test_name"
+            "@adequately_longer_test_name");
+   unitTest("jankowalski@intel.com");
+   unitTest("jan.kowalski@intel.com");
+   unitTest("jankowalski@@.@.@...com");
+   unitTest("janko........@@.@.@...com");
+   unitTest("@");
+   unitTest(".@");
+   unitTest("@");
+   unitTest("adequately_longer_test_name"
+            ".adequately_longer__test_surname"
+            "@notadequately_longer_domain.coma_____________________");
+   unitTest("notadequately_longer_alias_________________________________"
+             "__________________________________________________________"
+             "@adequately_longer_domain.com");
+   unitTest("adequately_longer_name."
+            "notadequately_longer_surname_______________________________"
+            "___________________________________________________________"
+            "@adequately_longer_domain.com");
+   unitTest("jankowa.lski@intel.com");
+   unitTest("jan.kowalski@intel.com");
 
    return 0;
 }
