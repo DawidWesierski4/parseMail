@@ -19,9 +19,6 @@ void
 printErrorMsg(int errorEnum);
 
 int
-checkName(const char *name);
-
-int
 parseName(const char **mail, const char *charPtr, char **outPtr);
 
 int

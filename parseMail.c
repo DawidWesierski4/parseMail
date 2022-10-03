@@ -5,11 +5,11 @@
 
 /*
  * printErrorMsg
- *  Description: prints the ENUM names from ERR_NUMS to stderr and if passed 
+ *  Description: prints the ENUM names from ERR_NUMS to stderr and if passed
  *  unknown integer prints ERR_UNKNOWN_ERROR
- * 
+ *
  * Input
- *  1 - int errorEnum -> integer representing enum from ERR_NUMS
+ *  1 int errorEnum -> integer representing enum from ERR_NUMS
  */
 void
 printErrorMsg(int errorEnum)
@@ -39,17 +39,19 @@ printErrorMsg(int errorEnum)
 /*
  * checkString
  *
- *  Description: checks the string for illegal characters and if the size is
+ * Description: checks the string for illegal characters and if the size is
  *  long enough.
- *  
- *  Input:
- *  1 const char *testString -> string that will be checked for size / characters
+ *
+ * Input:
+ *  1 const char *testString -> string to check for size / characters
  *  2 const char *illegalChars -> illegal characters
  *  3 int minSize -> minimal size that the string should have
- *  
- *  Output
- *   4 (ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION) when string size < minsize
- *   5 when string contains characters from illegal characters string
+ *
+ * Output
+ *  int
+ *  4 (ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION) when string size < minsize
+ *  5 (ERR_INPUT_FORMAT_ILLEGAL_CHAR)when string contains characters from
+ *    illegal characters string
  */
 int checkString(const char *testString, const char *illegalChars, int minSize)
 {
@@ -91,7 +93,7 @@ parseName(const char **mail, const char *charPtr, char **outPtr)
    strncpy(*outPtr, *mail, size);
    (*outPtr)[size] = '\0';
 
-   if(charPtr == NULL) {
+   if (charPtr == NULL) {
       check = checkString(*outPtr+1, "@ ^", 3);
    } else {
       check = checkString(*outPtr, ".@ ^", 3);
@@ -116,25 +118,30 @@ parseName(const char **mail, const char *charPtr, char **outPtr)
 /*
  * ParseMail
  *
- * Description: This function segments string into a credentials struct and 
- * checks if the segments are correct, it allows for 2 formats of data one where
- * there are specifed name only and one where there are specifed name and 
- * surname
- * 
+ * Description: This function segments string into a credentials struct and
+ *  checks if the segments are correct, it allows for 2 formats of data one
+ *  where there are specifed name only and one where there are specifed name and
+ *  surname data is saved in the memory that out is pointing to
+ *
  * Input:
  *  1 const char *mail mail string
  *  2 void *out pointer to the credentials struct where data is specifed
- * 
- * Output: 
- *  0 if the operation was successful
- *  [ERR_NUM] if the operation was unsuccessful
- * 
+ *
+ * Output:
+ *  int
+ *   0 if the operation was successful
+ *   [ERR_NUM] if the operation was unsuccessful
+ *
+ * Changes:
+ *  out->name = memory in heap with string containing name / alias
+ *  out->surName = NULL or memory in heap with string containing Surname
+ *  out->domain = memory in heap with string containing domain name
+ *
  * Disclaimer:
  *  function is made in way that ensures that you can use the releaseCredentials
  *  function afterwards which means that even if error was returned there is no
  *  pointer to unspecified memory its either NULL or allocated memory but the
- *  data pointer is pointing to could be undefined if the execution returned
- *  an error
+ *  data pointer is pointing to is undefined if the execution returned an error
  */
 int
 ParseMail(const char *mail, void *out)
@@ -222,7 +229,7 @@ printCredentials(credentials person)
 void
 releaseCredentialsMemory(credentials *person)
 {
-   if(!person) {
+   if (!person) {
       return;
    }
 
