@@ -22,18 +22,18 @@ int
 checkName(const char *name);
 
 int
-checkDomain(const char *domain);
+parseName(const char **mail, const char *charPtr, char **outPtr);
 
 int
 ParseMail(const char *mail, void *out);
+
+int
+checkString(const char *testString, const char *illegalChars, int minSize);
 
 void
 printCredentials(credentials person);
 
 void
 releaseCredentialsMemory(credentials *person);
-
-void
-automaticStatusTestParseMail(void);
 
 #endif /* PARSE_MAIL_H */

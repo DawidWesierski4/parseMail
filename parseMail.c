@@ -3,6 +3,14 @@
 #include <string.h>
 #include "parseMail.h"
 
+/*
+ * printErrorMsg
+ *  Description: prints the ENUM names from ERR_NUMS to stderr and if passed 
+ *  unknown integer prints ERR_UNKNOWN_ERROR
+ * 
+ * Input
+ *  1 - int errorEnum -> integer representing enum from ERR_NUMS
+ */
 void
 printErrorMsg(int errorEnum)
 {
@@ -28,44 +36,31 @@ printErrorMsg(int errorEnum)
    }
 }
 
-/* rules for names */
-int
-checkName(const char *name)
+/*
+ * checkString
+ *
+ *  Description: checks the string for illegal characters and if the size is
+ *  long enough.
+ *  
+ *  Input:
+ *  1 const char *testString -> string that will be checked for size / characters
+ *  2 const char *illegalChars -> illegal characters
+ *  3 int minSize -> minimal size that the string should have
+ *  
+ *  Output
+ *   4 (ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION) when string size < minsize
+ *   5 when string contains characters from illegal characters string
+ */
+int checkString(const char *testString, const char *illegalChars, int minSize)
 {
-   int minSize = 3;
-   int i = 0;
+   int i,j;
 
-   while (name[i] != '\0') {
-      /* We don't need to put @ in the illegal character list here
-       * as everything past the at is considered domain */
-      if (name[i] == '.' || name[i] == ' ') {
-         return ERR_INPUT_FORMAT_ILLEGAL_CHAR;
+   for (i = 0; testString[i] != '\0'; i++) {
+      for (j = 0; illegalChars[j] != '\0'; j++) {
+         if (testString[i] == illegalChars[j]) {
+            return ERR_INPUT_FORMAT_ILLEGAL_CHAR;
+         }
       }
-
-      i++;
-   }
-   if (i < minSize) {
-      return ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION;
-   }
-   return 0;
-}
-
-/* rules for domain */
-int
-checkDomain(const char *domain)
-{
-   int minSize = 3;
-   int maxSize = 32;
-   int i = 1;
-
-   while (domain[i] != '\0') {
-      if (domain[i] == '@' || domain[i] == ' ') {
-         return ERR_INPUT_FORMAT_ILLEGAL_CHAR;
-      } else if (i > maxSize) {
-         return ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION;
-      }
-
-      i++;
    }
 
    if (i < minSize) {
@@ -75,7 +70,7 @@ checkDomain(const char *domain)
    return 0;
 }
 
-
+/* parses mail surname and domain for the ParseMail function */
 int
 parseName(const char **mail, const char *charPtr, char **outPtr)
 {
@@ -97,9 +92,9 @@ parseName(const char **mail, const char *charPtr, char **outPtr)
    (*outPtr)[size] = '\0';
 
    if(charPtr == NULL) {
-      check = checkDomain(*outPtr);
+      check = checkString(*outPtr+1, "@ ^", 3);
    } else {
-      check = checkName(*outPtr);
+      check = checkString(*outPtr, ".@ ^", 3);
    }
 
    if (check) {
@@ -118,26 +113,29 @@ parseName(const char **mail, const char *charPtr, char **outPtr)
    return 0;
 }
 
-int
-parseDomain(const char* mail, credentials *outPtr)
-{
-   int check, size = strlen(mail);
-   outPtr->domain = (char*)malloc(size);
-   if (outPtr->domain == NULL) {
-      printErrorMsg(ERR_ALLOCATING_MEMORY);
-      return ERR_ALLOCATING_MEMORY;
-   }
-
-   strcpy(outPtr->domain, mail);
-   check = checkDomain(outPtr->domain);
-   if (check) {
-      printErrorMsg(check);
-      return check;
-   }
-
-   return 0;
-}
-
+/*
+ * ParseMail
+ *
+ * Description: This function segments string into a credentials struct and 
+ * checks if the segments are correct, it allows for 2 formats of data one where
+ * there are specifed name only and one where there are specifed name and 
+ * surname
+ * 
+ * Input:
+ *  1 const char *mail mail string
+ *  2 void *out pointer to the credentials struct where data is specifed
+ * 
+ * Output: 
+ *  0 if the operation was successful
+ *  [ERR_NUM] if the operation was unsuccessful
+ * 
+ * Disclaimer:
+ *  function is made in way that ensures that you can use the releaseCredentials
+ *  function afterwards which means that even if error was returned there is no
+ *  pointer to unspecified memory its either NULL or allocated memory but the
+ *  data pointer is pointing to could be undefined if the execution returned
+ *  an error
+ */
 int
 ParseMail(const char *mail, void *out)
 {
@@ -191,9 +189,23 @@ ParseMail(const char *mail, void *out)
    return 0;
 }
 
+/*
+ * printCredentials
+ *
+ * Description: prints Credentials struct in a format:
+ *
+ * "CREDENTIALS:"
+ * "Fist Name: person.name"  | OR | "Alias: person.name"
+ * "Surname: person.surName" | OR |
+ * "Domain: person.domain"
+ */
 void
 printCredentials(credentials person)
 {
+   if (person.name == NULL || person.domain == NULL) {
+      return;
+   }
+
    printf("\nCREDENTIALS:\n");
    if (person.surName == NULL) {
       printf("Alias: %s\n", person.name);
@@ -206,6 +218,7 @@ printCredentials(credentials person)
    printf("\n");
 }
 
+/* releases memory from Credentials struct */
 void
 releaseCredentialsMemory(credentials *person)
 {
