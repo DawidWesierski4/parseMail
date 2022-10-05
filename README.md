@@ -1,6 +1,6 @@
 # Parse Mail
 ## Description
-The parseMail library purpose is to brake down email address into a credentials\
+The parseMail library purpose is to break down email address into a credentials\
 which contains Name, Surname and Domain parts separated into the 3 strings \
 stored in the HEAP. Program allows the user to not specify the surname should\
 that be the case (alias@domain.com f.e.) the surname pointer will have NULL\

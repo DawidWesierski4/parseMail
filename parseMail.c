@@ -3,10 +3,15 @@
 #include <string.h>
 #include "parseMail.h"
 
+bool parseMailWarningEnabled = true;
+
 /*
  * printErrorMsg
- *  Description: prints the ENUM names from ERR_NUMS to stderr and if passed
- *  unknown integer prints ERR_UNKNOWN_ERROR
+ *
+ *  Description:
+ *  when global variable parseMailWarningEnabled is set prints the 
+ *  ENUM names from ERR_NUMS to stderr and if passed unknown integer
+ *  prints ERR_UNKNOWN_ERROR
  *
  * Input
  *  1 int errorEnum -> integer representing enum from ERR_NUMS
@@ -14,6 +19,10 @@
 void
 printErrorMsg(int errorEnum)
 {
+   if (!parseMailWarningEnabled) {
+      return;
+   }
+
    switch (errorEnum) {
       case ERR_ALLOCATING_MEMORY:
          fprintf(stderr, "ERR_ALLOCATING_MEMORY\n");
@@ -53,7 +62,8 @@ printErrorMsg(int errorEnum)
  *  5 (ERR_INPUT_FORMAT_ILLEGAL_CHAR)when string contains characters from
  *    illegal characters string
  */
-int checkString(const char *testString, const char *illegalChars, int minSize)
+int
+checkString(const char *testString, const char *illegalChars, int minSize)
 {
    int i,j;
 
@@ -69,19 +79,42 @@ int checkString(const char *testString, const char *illegalChars, int minSize)
       return ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION;
    }
 
-   return 0;
+   return ERR_SUCCESSFUL;
+}
+
+/* checkString wrapper specifies rules for name/surname */
+int
+checkName(const char *testString)
+{
+   const char *illegalChars = ".@ ^";
+   int minSize = 3;
+
+   return checkString(testString, illegalChars, minSize);
+}
+
+/* checkString wrapper specifies rules for domain */
+int
+checkDomain(const char *testString)
+{
+   const char *illegalChars = "@ ^";
+   int minSize = 3;
+
+   if (testString[0] != '@') {
+      return ERR_INPUT_FORMAT_ILLEGAL_CHAR;
+   }
+
+   return checkString(testString + 1, illegalChars, minSize);
 }
 
 /* parses mail surname and domain for the ParseMail function */
 int
-parseName(const char **mail, const char *charPtr, char **outPtr)
+parseName(const char **mail, const char *charPtr, char **outPtr,
+          int (*checkFunction)(const char*))
 {
    int check, size = charPtr - *mail;
 
-   if (charPtr == NULL) {
-      size = strlen(*mail); /* domain */
-   } else {
-      size = charPtr - *mail; /* name or surname */
+   if(!mail || !charPtr || !outPtr) {
+      return ERR_NULL_POINTER;
    }
 
    *outPtr = (char*)malloc(size + 1);
@@ -92,33 +125,22 @@ parseName(const char **mail, const char *charPtr, char **outPtr)
 
    strncpy(*outPtr, *mail, size);
    (*outPtr)[size] = '\0';
-
-   if (charPtr == NULL) {
-      check = checkString(*outPtr+1, "@ ^", 3);
-   } else {
-      check = checkString(*outPtr, ".@ ^", 3);
-   }
+   check = checkFunction(*outPtr);
 
    if (check) {
       printErrorMsg(check);
       return check;
    }
 
-   if (!charPtr) {
-      return 0;
-   } else if (charPtr[0] == '.') {
-      *mail = charPtr + 1; /* move pointer past the dot char */
-   } else if (charPtr[0] == '@') {
-      *mail = charPtr; /* move pointer to the at character */
-   }
-
-   return 0;
+   *mail = charPtr; /* move pointer to the end */
+   return ERR_SUCCESSFUL;
 }
 
 /*
  * ParseMail
  *
- * Description: This function segments string into a credentials struct and
+ * Description:
+ *  This function segments string into a credentials struct and
  *  checks if the segments are correct, it allows for 2 formats of data one
  *  where there are specifed name only and one where there are specifed name and
  *  surname data is saved in the memory that out is pointing to
@@ -138,10 +160,7 @@ parseName(const char **mail, const char *charPtr, char **outPtr)
  *  out->domain = memory in heap with string containing domain name
  *
  * Disclaimer:
- *  function is made in way that ensures that you can use the releaseCredentials
- *  function afterwards which means that even if error was returned there is no
- *  pointer to unspecified memory its either NULL or allocated memory but the
- *  data pointer is pointing to is undefined if the execution returned an error
+ *  should function encounter an error it releases all the memory
  */
 int
 ParseMail(const char *mail, void *out)
@@ -150,6 +169,7 @@ ParseMail(const char *mail, void *out)
    const char *dotCharPtr;
    int atPosition, check;
    credentials *outPtr;
+   int (*checkFunction)(const char*) = checkName;
 
    if (!mail) {
       printErrorMsg(ERR_NULL_POINTER);
@@ -165,41 +185,57 @@ ParseMail(const char *mail, void *out)
       return ERR_INPUT_FORMAT;
    }
 
+   /* we are making sure that we free only NULL/memory pointers */
    outPtr = ((credentials*)out);
+   outPtr->surName = NULL;
+   outPtr->name = NULL;
+   outPtr->domain = NULL;
    atPosition = atCharPtr - mail;
    dotCharPtr = strchr(mail, '.');
+
+   /* go into this if there is a dot character before at character */
    if (dotCharPtr && atPosition > dotCharPtr - mail) {
-      check = parseName(&mail, dotCharPtr, &outPtr->name);
+      check = parseName(&mail, dotCharPtr, &outPtr->name, checkFunction);
       if (check) {
+         releaseCredentialsMemory(outPtr);
          return check;
       }
 
-      check = parseName(&mail, atCharPtr, &outPtr->surName);
+      /* we are moving the pointer past the '.' character */
+      mail++;
+      check = parseName(&mail, atCharPtr, &outPtr->surName, checkFunction);
+
       if (check) {
+         releaseCredentialsMemory(outPtr);
          return check;
       }
 
    } else {
       outPtr->surName = NULL;
-      check = parseName(&mail, atCharPtr, &outPtr->name);
+      check = parseName(&mail, atCharPtr, &outPtr->name, checkFunction);
+
       if (check) {
+         releaseCredentialsMemory(outPtr);
          return check;
       }
-
    }
 
-   check = parseName(&mail, NULL, &outPtr->domain);
+   checkFunction = checkDomain;
+   check = parseName(&mail, strchr(mail, '\0'), &outPtr->domain, checkFunction);
+
    if (check) {
+      releaseCredentialsMemory(outPtr);
       return check;
    }
 
-   return 0;
+   return ERR_SUCCESSFUL;
 }
 
 /*
  * printCredentials
  *
- * Description: prints Credentials struct in a format:
+ * Description:
+ *  prints Credentials struct in a format:
  *
  * "CREDENTIALS:"
  * "Fist Name: person.name"  | OR | "Alias: person.name"
