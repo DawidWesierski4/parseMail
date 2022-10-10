@@ -10,7 +10,7 @@ typedef struct credentialInformation {
 } credentials;
 
 enum ERR_NUMS {
-   ERR_SUCCESSFUL,
+   SUCCESSFUL,
    ERR_ALLOCATING_MEMORY,
    ERR_NULL_POINTER,
    ERR_INPUT_FORMAT,
@@ -18,7 +18,8 @@ enum ERR_NUMS {
    ERR_INPUT_FORMAT_ILLEGAL_CHAR,
 };
 
-extern bool parseMailWarningEnabled;
+void
+setParseMailWarnings(bool warningEnabled);
 
 void
 printErrorMsg(int errorEnum);

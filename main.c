@@ -5,7 +5,8 @@
 #include "parseMail.h"
 
 /* strcmp wrapper that returns 0 when both string are NULL */
-bool strcmpNullSafe(const char *stringOne, const char *stringTwo) {
+bool
+strcmpNullSafe(const char *stringOne, const char *stringTwo) {
    if (stringOne == NULL || stringTwo == NULL) {
       return stringOne != stringTwo;
    } else {
@@ -21,7 +22,7 @@ unitTest(const char *inputMail, int expectedResult, const char *expectedName,
    int aux;
    bool results[3];
 
-   parseMailWarningEnabled = false; /* ignore warnings */
+   setParseMailWarnings(false); /* ignore warnings */
    aux = ParseMail(inputMail, &testedInOut);
    results[0] = !strcmpNullSafe(testedInOut.name, expectedName);
    results[1] = !strcmpNullSafe(testedInOut.surName, expectedSurName);
@@ -50,7 +51,7 @@ unitTest(const char *inputMail, int expectedResult, const char *expectedName,
          printf("\nReturned ErrCode is wrong \nExpected:\"%d\"\nActual\"%d\"\n",
                 expectedResult, aux);
          printf("\nReturned error message:\n");
-         parseMailWarningEnabled = true; /* turning on warnings */
+         setParseMailWarnings(true); /* turning on warnings */
          printErrorMsg(aux);
       }
 
@@ -66,19 +67,19 @@ automaticTestsParseMail(void)
    const char *input;
 
    input = "jan.kowalski@intel.com";
-   counter += unitTest(input, ERR_SUCCESSFUL,
+   counter += unitTest(input, SUCCESSFUL,
                        "jan", "kowalski", "@intel.com");
 
    input = "janusz.kow@intel.com";
-   counter += unitTest(input, ERR_SUCCESSFUL,
+   counter += unitTest(input, SUCCESSFUL,
                        "janusz", "kow", "@intel.com");
 
    input = "januszkow@intel.com";
-   counter += unitTest(input, ERR_SUCCESSFUL,
+   counter += unitTest(input, SUCCESSFUL,
                        "januszkow", NULL, "@intel.com");
 
    input = "kow@ina";
-   counter += unitTest(input, ERR_SUCCESSFUL,
+   counter += unitTest(input, SUCCESSFUL,
                        "kow", NULL, "@ina");
 
    input = "j.kowalski@intel.com";
@@ -124,7 +125,8 @@ automaticTestsParseMail(void)
    }
 }
 
-int main(void)
+int
+main(void)
 {
    automaticTestsParseMail();
    return 0;

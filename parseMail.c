@@ -3,7 +3,14 @@
 #include <string.h>
 #include "parseMail.h"
 
-bool parseMailWarningEnabled = true;
+bool static parseMailWarningEnabled = true;
+
+/* enable or disable warning inside parseMail library functions */
+void
+setParseMailWarnings(bool warningEnabled)
+{
+   parseMailWarningEnabled = warningEnabled;
+}
 
 /*
  * printErrorMsg
@@ -79,7 +86,7 @@ checkString(const char *testString, const char *illegalChars, int minSize)
       return ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION;
    }
 
-   return ERR_SUCCESSFUL;
+   return SUCCESSFUL;
 }
 
 /* checkString wrapper specifies rules for name/surname */
@@ -113,7 +120,7 @@ parseName(const char **mail, const char *charPtr, char **outPtr,
 {
    int check, size = charPtr - *mail;
 
-   if(!mail || !charPtr || !outPtr) {
+   if (!mail || !charPtr || !outPtr) {
       return ERR_NULL_POINTER;
    }
 
@@ -133,7 +140,7 @@ parseName(const char **mail, const char *charPtr, char **outPtr,
    }
 
    *mail = charPtr; /* move pointer to the end */
-   return ERR_SUCCESSFUL;
+   return SUCCESSFUL;
 }
 
 /*
@@ -196,6 +203,7 @@ ParseMail(const char *mail, void *out)
    /* go into this if there is a dot character before at character */
    if (dotCharPtr && atPosition > dotCharPtr - mail) {
       check = parseName(&mail, dotCharPtr, &outPtr->name, checkFunction);
+
       if (check) {
          releaseCredentialsMemory(outPtr);
          return check;
@@ -228,7 +236,7 @@ ParseMail(const char *mail, void *out)
       return check;
    }
 
-   return ERR_SUCCESSFUL;
+   return SUCCESSFUL;
 }
 
 /*
