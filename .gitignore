@@ -1,1 +1,4 @@
+# ignore exetutable files
 *.out
+
+parseMail

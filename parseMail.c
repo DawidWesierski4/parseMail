@@ -1,179 +1,262 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "parseMail.h"
 
-#define MAX_NAME 2048
-#define MAX_DOMAIN 1024
+bool static parseMailWarningEnabled = true;
 
-enum ERR_NUMS {
-   ERR_ALLOCATING_MEMORY = 1,
-   ERR_NULL_POINTER,
-   ERR_STR_BUFF_OVERFLOW,
-   ERR_INPUT_FORMAT,
-   ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION,
-   ERR_INPUT_FORMAT_ILLEGAL_CHAR
-};
-
-typedef struct credentialInformation {
-
-   char *name;
-   char *surName;
-   char *domain;
-} credentials;
-
-/* rules for names */
-int
-checkName(const char *name)
+/* enable or disable warning inside parseMail library functions */
+void
+setParseMailWarnings(bool warningEnabled)
 {
-   int minSize = 3;
-   int i = 0;
+   parseMailWarningEnabled = warningEnabled;
+}
 
-   while (name[i] != '\0') {
-      /* We don't need to put @ in the illegal character list here
-       * as everything past the at is considered domain */
-      if (name[i] == '.' || name[i] == ' ') {
-         return ERR_INPUT_FORMAT_ILLEGAL_CHAR;
+/*
+ * printErrorMsg
+ *
+ *  Description:
+ *  when global variable parseMailWarningEnabled is set prints the 
+ *  ENUM names from ERR_NUMS to stderr and if passed unknown integer
+ *  prints ERR_UNKNOWN_ERROR
+ *
+ * Input
+ *  1 int errorEnum -> integer representing enum from ERR_NUMS
+ */
+void
+printErrorMsg(int errorEnum)
+{
+   if (!parseMailWarningEnabled) {
+      return;
+   }
+
+   switch (errorEnum) {
+      case ERR_ALLOCATING_MEMORY:
+         fprintf(stderr, "ERR_ALLOCATING_MEMORY\n");
+         return;
+      case ERR_NULL_POINTER:
+         fprintf(stderr, "ERR_NULL_POINTER\n");
+         return;
+      case ERR_INPUT_FORMAT:
+         fprintf(stderr, "ERR_INPUT_FORMAT\n");
+         return;
+      case ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION:
+         fprintf(stderr, "ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION\n");
+         return;
+      case ERR_INPUT_FORMAT_ILLEGAL_CHAR:
+         fprintf(stderr, "ERR_INPUT_FORMAT_ILLEGAL_CHAR\n");
+         return;
+      default:
+         fprintf(stderr, "ERR_UNKNOWN_ERROR\n");
+         return;
+   }
+}
+
+/*
+ * checkString
+ *
+ * Description: checks the string for illegal characters and if the size is
+ *  long enough.
+ *
+ * Input:
+ *  1 const char *testString -> string to check for size / characters
+ *  2 const char *illegalChars -> illegal characters
+ *  3 int minSize -> minimal size that the string should have
+ *
+ * Output
+ *  int
+ *  4 (ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION) when string size < minsize
+ *  5 (ERR_INPUT_FORMAT_ILLEGAL_CHAR)when string contains characters from
+ *    illegal characters string
+ */
+int
+checkString(const char *testString, const char *illegalChars, int minSize)
+{
+   int i,j;
+
+   for (i = 0; testString[i] != '\0'; i++) {
+      for (j = 0; illegalChars[j] != '\0'; j++) {
+         if (testString[i] == illegalChars[j]) {
+            return ERR_INPUT_FORMAT_ILLEGAL_CHAR;
+         }
       }
-
-      i++;
    }
 
    if (i < minSize) {
       return ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION;
    }
 
-   return 0;
+   return SUCCESSFUL;
 }
 
-/* rules for domain */
+/* checkString wrapper specifies rules for name/surname */
 int
-checkDomain(const char *domain)
+checkName(const char *testString)
 {
+   const char *illegalChars = ".@ ^";
    int minSize = 3;
-   int i = 1;
 
-   if (domain[0] != '@') {
+   return checkString(testString, illegalChars, minSize);
+}
+
+/* checkString wrapper specifies rules for domain */
+int
+checkDomain(const char *testString)
+{
+   const char *illegalChars = "@ ^";
+   int minSize = 3;
+
+   if (testString[0] != '@') {
       return ERR_INPUT_FORMAT_ILLEGAL_CHAR;
    }
 
-   while (domain[i] != '\0') {
-      if (domain[i] == '@' || domain[i] == ' ') {
-         return ERR_INPUT_FORMAT_ILLEGAL_CHAR;
-      }
-      i++;
-   }
-
-   if (i < minSize) {
-      return ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION;
-   }
-
-   return 0;
+   return checkString(testString + 1, illegalChars, minSize);
 }
 
+/* parses mail surname and domain for the ParseMail function */
+int
+parseName(const char **mail, const char *charPtr, char **outPtr,
+          int (*checkFunction)(const char*))
+{
+   int check, size = charPtr - *mail;
+
+   if (!mail || !charPtr || !outPtr) {
+      return ERR_NULL_POINTER;
+   }
+
+   *outPtr = (char*)malloc(size + 1);
+   if (*outPtr == NULL) {
+      printErrorMsg(ERR_ALLOCATING_MEMORY);
+      return ERR_ALLOCATING_MEMORY;
+   }
+
+   strncpy(*outPtr, *mail, size);
+   (*outPtr)[size] = '\0';
+   check = checkFunction(*outPtr);
+
+   if (check) {
+      printErrorMsg(check);
+      return check;
+   }
+
+   *mail = charPtr; /* move pointer to the end */
+   return SUCCESSFUL;
+}
+
+/*
+ * ParseMail
+ *
+ * Description:
+ *  This function segments string into a credentials struct and
+ *  checks if the segments are correct, it allows for 2 formats of data one
+ *  where there are specifed name only and one where there are specifed name and
+ *  surname data is saved in the memory that out is pointing to
+ *
+ * Input:
+ *  1 const char *mail mail string
+ *  2 void *out pointer to the credentials struct where data is specifed
+ *
+ * Output:
+ *  int
+ *   0 if the operation was successful
+ *   [ERR_NUM] if the operation was unsuccessful
+ *
+ * Changes:
+ *  out->name = memory in heap with string containing name / alias
+ *  out->surName = NULL or memory in heap with string containing Surname
+ *  out->domain = memory in heap with string containing domain name
+ *
+ * Disclaimer:
+ *  should function encounter an error it releases all the memory
+ */
 int
 ParseMail(const char *mail, void *out)
 {
-   const char *atCharPtr = strchr(mail, '@');
+   const char *atCharPtr;
    const char *dotCharPtr;
-   int atPosition, size, check;
-   credentials *outPtr = ((credentials*)out);
+   int atPosition, check;
+   credentials *outPtr;
+   int (*checkFunction)(const char*) = checkName;
 
-   if (!out || outPtr->name == NULL || outPtr->domain == NULL) {
-      fprintf(stderr, "ERR_ALLOCATING_MEMORY\n");
+   if (!mail) {
+      printErrorMsg(ERR_NULL_POINTER);
+      return ERR_NULL_POINTER;
+   }
+
+   atCharPtr = strchr(mail, '@');
+   if (!out) {
+      printErrorMsg(ERR_NULL_POINTER);
       return ERR_NULL_POINTER;
    } else if (!atCharPtr) {
-      fprintf(stderr, "ERR_INPUT_FORMAT\n");
+      printErrorMsg(ERR_INPUT_FORMAT);
       return ERR_INPUT_FORMAT;
    }
 
+   /* we are making sure that we free only NULL/memory pointers */
+   outPtr = ((credentials*)out);
+   outPtr->surName = NULL;
+   outPtr->name = NULL;
+   outPtr->domain = NULL;
    atPosition = atCharPtr - mail;
    dotCharPtr = strchr(mail, '.');
 
+   /* go into this if there is a dot character before at character */
    if (dotCharPtr && atPosition > dotCharPtr - mail) {
-      if (dotCharPtr - mail > MAX_NAME - 1) {
-         fprintf(stderr, "ERR_STR_BUFF_OVERFLOW\n");
-         return ERR_STR_BUFF_OVERFLOW;
-      }
-
-      if (outPtr->surName == NULL) {
-          outPtr->surName = (char*)malloc(MAX_NAME);
-      }
-
-      strcpy(outPtr->name, "\0");
-      strncat(outPtr->name, mail, dotCharPtr - mail);
-      check = checkName(outPtr->name);
+      check = parseName(&mail, dotCharPtr, &outPtr->name, checkFunction);
 
       if (check) {
-         fprintf(stderr, "ERR_INPUT_FORMAT\n");
+         releaseCredentialsMemory(outPtr);
          return check;
       }
 
-      mail = dotCharPtr + 1; /* move pointer past the dot char */
-   } else {
-      free(outPtr->surName);
-      outPtr->surName = outPtr->name;
-   }
-   /*
-    * if there was an '.' character before '@':
-    * out content
-    *  ["name"] <- name
-    *  [MAX_NAME bytes of memory ] <- surName
-    *  [MAX_DOMAIN bytes of memory] <- domain
-    * mail points to
-    *      \/
-    *  name.surname@domain.com
-    * otherwise:
-    * out content
-    *  [MAX_NAME bytes of memory ] <- name, surName
-    *  [MAX_DOMAIN bytes of memory] <- domain
-    * mail points to
-    * \/
-    *  alias@domain.com
-    */
-   if (atCharPtr - mail > MAX_NAME - 1) {
-      if (outPtr->name ==
-          outPtr->surName) {
-         /* to make sure that we do not free the same pointer 2 times */
-         outPtr->surName = NULL;
+      /* we are moving the pointer past the '.' character */
+      mail++;
+      check = parseName(&mail, atCharPtr, &outPtr->surName, checkFunction);
+
+      if (check) {
+         releaseCredentialsMemory(outPtr);
+         return check;
       }
-      fprintf(stderr, "ERR_STR_BUFF_OVERFLOW\n");
-      return ERR_STR_BUFF_OVERFLOW;
-   }
 
-   strcpy(outPtr->surName, "\0");
-   strncat(outPtr->surName, mail, atCharPtr - mail);
-   check = checkName(outPtr->surName);
-
-   if (outPtr->name == outPtr->surName) {
+   } else {
       outPtr->surName = NULL;
+      check = parseName(&mail, atCharPtr, &outPtr->name, checkFunction);
+
+      if (check) {
+         releaseCredentialsMemory(outPtr);
+         return check;
+      }
    }
 
+   checkFunction = checkDomain;
+   check = parseName(&mail, strchr(mail, '\0'), &outPtr->domain, checkFunction);
+
    if (check) {
-      fprintf(stderr, "ERR_INPUT_FORMAT\n");
+      releaseCredentialsMemory(outPtr);
       return check;
    }
 
-   mail = atCharPtr;
-   size = strlen(mail);
-   if (size > MAX_DOMAIN) {
-      fprintf(stderr, "ERR_STR_BUFF_OVERFLOW\n");
-      return ERR_STR_BUFF_OVERFLOW;
-   }
-
-   strcpy(outPtr->domain, mail);
-
-   check = checkDomain(outPtr->domain);
-   if (check) {
-      fprintf(stderr, "ERR_INPUT_FORMAT\n");
-      return check;
-   }
-
-   return 0;
+   return SUCCESSFUL;
 }
 
+/*
+ * printCredentials
+ *
+ * Description:
+ *  prints Credentials struct in a format:
+ *
+ * "CREDENTIALS:"
+ * "Fist Name: person.name"  | OR | "Alias: person.name"
+ * "Surname: person.surName" | OR |
+ * "Domain: person.domain"
+ */
 void
 printCredentials(credentials person)
 {
+   if (person.name == NULL || person.domain == NULL) {
+      return;
+   }
+
    printf("\nCREDENTIALS:\n");
    if (person.surName == NULL) {
       printf("Alias: %s\n", person.name);
@@ -181,13 +264,16 @@ printCredentials(credentials person)
       printf("First Name: %s\n", person.name);
       printf("Surname: %s\n", person.surName);
    }
+
    printf("Domain: %s\n", person.domain);
    printf("\n");
 }
 
+/* releases memory from Credentials struct */
 void
-releseCredentialsMemory(credentials *person) {
-   if(!person) {
+releaseCredentialsMemory(credentials *person)
+{
+   if (!person) {
       return;
    }
 
@@ -197,202 +283,4 @@ releseCredentialsMemory(credentials *person) {
    person->surName = NULL;
    free(person->domain);
    person->domain = NULL;
-}
-
-struct automaticStatusTestStruct {
-   const char* inputName;
-   int expectedResult;
-};
-
-void
-automaticStatusTestParseMail(void) {
-   int i;
-   struct automaticStatusTestStruct input[] = {
-      {"you.froodian@sbcglobal.net",   0},
-      {"gemmell@sbcglobal.net",        0},
-      {"step.esasaki@att.net",         0},
-      {"evilopie@outlook.com",         0},
-      {"hans.sthomas@msn.com",         0},
-      {"jelmer@optonline.net",         0},
-      {"mrobshaw@yahoo.ca",            0},
-      {"you.froodiansbcglobal.net",    ERR_INPUT_FORMAT},
-      {"gemmellsbcglobal.net",         ERR_INPUT_FORMAT},
-      {"step.esasakiatt.net",          ERR_INPUT_FORMAT},
-      {"evilopieoutlook.com",          ERR_INPUT_FORMAT},
-      {"hans.sthomasmsn.com",          ERR_INPUT_FORMAT},
-      {"jelmeroptonline.net",          ERR_INPUT_FORMAT},
-      {"mrobshawyahoo.ca",             ERR_INPUT_FORMAT},
-      {"y.oufroodian@sbcglobal.net",   ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION},
-      {"ge@sbcglobal.net",             ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION},
-      {"step.e@att.net",               ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION},
-      {"e@outlook.com",                ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION},
-      {"hans.sthomas@m",               ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION},
-      {"jelmer@o",                     ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION},
-      {"m@yahoo.ca",                   ERR_INPUT_FORMAT_SIZE_RULE_VIOLATION},
-   };
-   int size = sizeof(input) / sizeof(input[0]);
-   short succes = 1;
-   credentials output;
-
-   for (i = 0; i < size; i++) {
-      output.name = malloc(sizeof(input[i].inputName));
-      output.surName = malloc(sizeof(input[i].inputName));
-      output.domain = malloc(sizeof(input[i].inputName));
-      if (ParseMail(input[i].inputName, &output) != input[i].expectedResult) {
-         printf("Unexpected result on entry %d\n", i);
-         printf("On %s Expected %d got %d\n", input[i].inputName,
-                input[i].expectedResult,
-                ParseMail(input[i].inputName, &output));
-         succes = 0;
-      }
-      releseCredentialsMemory(&output);
-   }
-
-   printf("\nTest of ParseMail result:");
-   if (succes) {
-      printf("SUCCES\n");
-   } else {
-      printf("FAIL\n");
-   }
-}
-
-
-int main(void)
-{
-   credentials janK;
-   int aux;
-
-   janK.name = (char*)malloc(MAX_NAME);
-   janK.surName = (char*)malloc(MAX_NAME);
-   janK.domain = (char*)malloc(MAX_DOMAIN);
-
-   automaticStatusTestParseMail();
-
-   if (!janK.name || !janK.domain || !janK.surName) {
-      fprintf(stderr, "ERR_ALLOCATING_MEMORY\n");
-      return ERR_ALLOCATING_MEMORY;
-   }
-
-   aux = ParseMail("jan.kowalski@intel.com", &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-
-   aux = ParseMail("adequatly_longer_test_name.adequatly_longer_test_name"
-                   "@adequatly_longer_test_name", &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-
-
-   aux = ParseMail("jankowalski@intel.com", &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-
-   aux = ParseMail("jan.kowalski@intel.com", &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-
-   aux = ParseMail("jankowalski@@.@.@...com", &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-
-   aux = ParseMail("janko........@@.@.@...com", &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-
-   aux = ParseMail("@", &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-
-
-   aux = ParseMail(".@", &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-
-   aux = ParseMail("@", &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-
-
-   aux = ParseMail("adequatly_longer_test_name"
-                   ".adequatly_longer__test_surname"
-                   "@notadequatly_longer_domain.coma_____________________",
-                   &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-
-   aux = ParseMail("notadequatly_longer_alias__________________________________"
-                   "__________________________________________________________"
-                   "@adequatly_longer_domain.com",
-                   &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-
-   aux = ParseMail("adequatly_longer_name."
-                   "notadequatly_longer_surname________________________________"
-                   "___________________________________________________________"
-                   "@adequatly_longer_domain.com",
-                   &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-
-   aux = ParseMail("jankowalski@intel.com", &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-
-   aux = ParseMail("jankowa.lski@intel.com", &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-
-   releseCredentialsMemory(&janK);
-
-   aux = ParseMail("jan.kowalski@intel.com", &janK);
-   if (!aux) {
-      printCredentials(janK);
-   } else {
-      printf("RESULT: %d\n\n", aux);
-   }
-
-   return 0;
 }
